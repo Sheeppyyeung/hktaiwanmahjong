@@ -2,7 +2,7 @@
 <html lang="zh-Hant-HK">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 <title>港式台灣牌</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
@@ -21,8 +21,10 @@
   --dw: min(29px, calc(var(--L) * .0315)); /* discard tile */
   color-scheme: dark;
 }
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; margin: 0; overflow: hidden; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+/* a fixed stage clips the turned table, so its pre-rotation size can never widen the page (that made some phone browsers zoom out) */
+#stage { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
 body { background: var(--rim); color: var(--text); font-family: var(--ui); font-size: 13px; overscroll-behavior: none; touch-action: manipulation; }
 #app { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: radial-gradient(90% 90% at 50% 48%, #176058 0%, var(--felt) 55%, var(--felt-deep) 100%); box-shadow: inset 0 0 0 5px var(--rim), inset 0 0 0 6px #6b4a2c; overflow: hidden; transform-origin: top left; }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -89,7 +91,8 @@ button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 #centre .meta { color: var(--muted); font-size: 12px; }
 
 /* me */
-#p0 { position: relative; padding: 0 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+#app { --edge: 0px; } #app.rot { --edge: 26px; } /* turned table: keep the hand clear of the browser's edge-swipe zone */
+#p0 { position: relative; padding: 0 10px calc(12px + var(--edge)); display: flex; flex-direction: column; gap: 3px; }
 #meInfo { display: flex; align-items: center; gap: 8px; --w: min(20px, calc(var(--L) * .024)); min-height: 28px; }
 #meInfo .hint { color: var(--muted); font-size: 12px; }
 #handRow { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding-top: 10px; min-height: calc(var(--tw) * 1.36 + 16px); }
@@ -104,7 +107,7 @@ button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 #mySets { --w: calc(var(--tw) * .74); flex-wrap: nowrap; gap: 6px; }
 
 /* call buttons float over the table, above the hand */
-#acts { position: absolute; right: 14px; bottom: calc(var(--tw) * 1.36 + 34px); display: flex; gap: 10px; align-items: center; z-index: 8; }
+#acts { position: absolute; right: 14px; bottom: calc(var(--tw) * 1.36 + 34px + var(--edge)); display: flex; gap: 10px; align-items: center; z-index: 8; }
 #acts button { min-width: 58px; height: 58px; padding: 0 14px; border-radius: 29px; border: 2px solid #f3cf85; background: var(--brass); color: var(--felt-deep); font-family: var(--face); font-weight: 900; font-size: 24px; display: flex; align-items: center; justify-content: center; gap: 6px; --w: 19px; box-shadow: 0 4px 12px rgba(0, 0, 0, .45); }
 #acts button.win { background: var(--red); border-color: #ee8a82; color: #fff; }
 #acts button.plain { background: #165950; border-color: var(--felt-line); color: var(--text); font-size: 18px; }
@@ -115,7 +118,7 @@ button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 #p0 .bubble { top: -40px; } #p2 .bubble { top: 60px; } #p3 .bubble { left: 110%; } #p1 .bubble { left: -10%; }
 @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 18% { transform: scale(1.1); opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1); } }
 
-#tip { position: absolute; left: 50%; bottom: calc(var(--tw) * 1.36 + 64px); transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 12px; background: rgba(6, 30, 28, .93); border: 1.5px solid var(--brass); --w: 26px; white-space: nowrap; pointer-events: none; }
+#tip { position: absolute; left: 50%; bottom: calc(var(--tw) * 1.36 + 64px + var(--edge)); transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 12px; background: rgba(6, 30, 28, .93); border: 1.5px solid var(--brass); --w: 26px; white-space: nowrap; pointer-events: none; }
 #tip[hidden] { display: none; }
 #tip .lab { font-family: var(--face); font-weight: 900; font-size: 15px; color: var(--brass); }
 #tip .w { display: flex; flex-direction: column; align-items: center; gap: 5px; }
@@ -167,6 +170,7 @@ table.sc td { padding: 5px 2px; border-top: 1px solid #ddd3b8; } table.sc td:nth
 </style>
 </head>
 <body>
+<div id="stage">
 <div id="app">
   <div id="p2"></div>
   <button id="helpBtn" type="button">玩法</button>
@@ -206,6 +210,7 @@ table.sc td { padding: 5px 2px; border-top: 1px solid #ddd3b8; } table.sc td:nth
       <button class="cta" id="helpClose" type="button">返回牌局</button>
     </div>
   </div></div>
+</div>
 </div>
 <script>
 // 港式台灣牌 engine — pure logic, no DOM. Runs in the browser (window.MJ) and in Node.
@@ -991,13 +996,22 @@ table.sc td { padding: 5px 2px; border-top: 1px solid #ddd3b8; } table.sc td:nth
 
   // hold the phone sideways: if the screen is taller than wide, turn the whole table 90°
   function fit() {
-    const W = window.innerWidth, H = window.innerHeight, app = $('app');
+    const box = $('stage').getBoundingClientRect(), W = box.width, H = box.height, app = $('app');
+    app.classList.toggle('rot', H > W);
     document.documentElement.style.setProperty('--L', Math.max(W, H) + 'px');
     rotated = H > W;
     if (H > W) { app.style.width = H + 'px'; app.style.height = W + 'px'; app.style.transform = 'rotate(90deg) translateY(-100%)'; }
     else { app.style.width = ''; app.style.height = ''; app.style.transform = ''; }
   }
-  window.addEventListener('resize', fit); fit();
+  window.addEventListener('resize', fit); window.addEventListener('orientationchange', () => setTimeout(fit, 250)); fit();
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+  // phones: no double-tap or pinch zoom, and touches that start on the hand never scroll or swipe the page
+  document.addEventListener('dblclick', e => e.preventDefault());
+  for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => e.preventDefault());
+  let lastEnd = 0;
+  document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastEnd < 350 && !e.target.closest('button')) e.preventDefault(); lastEnd = now; }, { passive: false });
+  $('hand').addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+  $('hand').addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
   const chip = (v, s, on) => { const p = v.players[s]; return `<span class="chip ${on ? 'on' : ''}">${windBadge(v, s)}<span class="nm">${NAMES[s]}</span><span class="pts">${signed(v.scores[s])}</span>${p.ready ? '<span class="pill">叮</span>' : ''}</span>`; };
 
