@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>港式台灣牌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* one world: a felt table seen from your seat, four players round it, discards pooled in the middle, brass for whatever needs you */
+  --felt: #10524b; --felt-deep: #0a3532; --felt-line: #21695f; --rim: #3a2417;
+  --ivory: #f6f0df; --ivory-edge: #cfc4a4; --tile-back: #1e7f69;
+  --ink: #1c2729; --text: #e9efe6; --muted: #a4c2bb;
+  --brass: #e0ad4a; --red: #c23a34; --green: #23804f; --blue: #2d4b9b;
+  --seat0: #e0ad4a; --seat1: #7cc4e8; --seat2: #f09a8a; --seat3: #b6d67a;
+  --face: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --ui: -apple-system, "PingFang HK", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  --L: 100vw; /* long side of the screen, set by script */
+  --tw: min(46px, calc((var(--L) - 44px) / 19.6)); /* hand tile */
+  --dw: min(29px, calc(var(--L) * .0315)); /* discard tile */
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--rim); color: var(--text); font-family: var(--ui); font-size: 13px; overscroll-behavior: none; touch-action: manipulation; }
+#app { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: radial-gradient(90% 90% at 50% 48%, #176058 0%, var(--felt) 55%, var(--felt-deep) 100%); box-shadow: inset 0 0 0 5px var(--rim), inset 0 0 0 6px #6b4a2c; overflow: hidden; transform-origin: top left; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* tiles */
+.t { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; flex: none; width: var(--w, 24px); height: calc(var(--w, 24px) * 1.36); border-radius: calc(var(--w, 24px) * .14); background: linear-gradient(180deg, #fffaf0, var(--ivory)); color: var(--ink); font-family: var(--face); font-weight: 900; line-height: 1; box-shadow: 0 calc(var(--w, 24px) * .05) 0 var(--ivory-edge), 0 calc(var(--w, 24px) * .11) 0 var(--tile-back); position: relative; user-select: none; }
+.t b { font-size: calc(var(--w, 24px) * .52); font-weight: 900; }
+.t i { font-style: normal; font-size: calc(var(--w, 24px) * .4); margin-top: calc(var(--w, 24px) * .06); }
+.t.s0 b { color: var(--blue); } .t.s0 i { color: var(--red); }
+.t.pic svg { width: 84%; height: 88%; display: block; }
+.t.hz b { font-size: calc(var(--w, 24px) * .7); color: var(--blue); }
+.t.h31 b { color: var(--red); } .t.h32 b { color: var(--green); }
+.t.h33 u { width: 58%; height: 66%; border: calc(var(--w, 24px) * .055) solid var(--blue); border-radius: 12%; position: relative; }
+.t.h33 u::after { content: ""; position: absolute; inset: 9%; border: calc(var(--w, 24px) * .03) solid var(--blue); border-radius: 22%; }
+.t.fl { justify-content: flex-end; padding-bottom: 6%; }
+.t.fl svg { width: 74%; height: auto; display: block; }
+.t.fl b, .t.fl i { position: absolute; top: 5%; margin: 0; color: var(--ink); font-size: calc(var(--w, 24px) * .27); line-height: 1; }
+.t.fl i { font-family: var(--ui); font-weight: 700; font-size: calc(var(--w, 24px) * .24); }
+.t.fl b { right: 8%; } .t.fl i { left: 10%; }
+.t.fl.g2 b { right: auto; left: 8%; } .t.fl.g2 i { left: auto; right: 10%; }
+.t.back { background: linear-gradient(180deg, #2a9a80, var(--tile-back)); box-shadow: 0 calc(var(--w, 24px) * .11) 0 #0f5446; }
+.sets { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: flex-end; }
+.set { display: flex; gap: 1px; }
+
+/* player chips */
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 2px; border-radius: 999px; background: rgba(0, 0, 0, .28); border: 1.5px solid transparent; font-size: 12px; white-space: nowrap; flex: none; }
+.chip.on { border-color: var(--brass); background: rgba(224, 173, 74, .16); }
+.wind { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-family: var(--face); font-weight: 900; font-size: 13px; background: var(--felt-deep); border: 1.5px solid var(--c); color: var(--c); flex: none; }
+.wind.dealer { background: var(--c); color: var(--felt-deep); }
+.chip .nm { font-weight: 600; } .chip .pts { font-variant-numeric: tabular-nums; color: var(--muted); }
+.pill { font-size: 11px; padding: 0 6px; border-radius: 999px; background: var(--red); color: #fff; font-weight: 700; }
+
+/* 對家 along the top */
+#p2 { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 70px 4px; position: relative; min-height: 40px; }
+#p2 .backs { display: flex; gap: 1px; --w: min(17px, calc(var(--L) * .02)); }
+#p2 .sets { --w: min(25px, calc(var(--L) * .029)); flex-wrap: nowrap; }
+#p2 .sets.many { --w: min(18px, calc(var(--L) * .021)); }
+#helpBtn { position: absolute; top: 10px; right: 12px; z-index: 6; background: rgba(0, 0, 0, .28); border: 1px solid var(--felt-line); border-radius: 999px; padding: 3px 12px; font-size: 12px; }
+
+/* middle: side players + table */
+#mid { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 0; }
+.side { width: min(140px, calc(var(--L) * .162)); padding: 0 8px; display: flex; flex-direction: column; gap: 6px; position: relative; min-height: 0; }
+#p1 { align-items: flex-end; }
+.side .body { display: flex; gap: 5px; min-height: 0; }
+#p1 .body { flex-direction: row-reverse; }
+.side .backs { display: flex; flex-direction: column; gap: 1px; }
+.side .backs span { width: 21px; height: 8px; border-radius: 2px; background: linear-gradient(90deg, #2a9a80, var(--tile-back)); box-shadow: 0 1px 0 #0f5446; }
+.side .sets.many { --w: min(17px, calc(var(--L) * .02)); }
+.side .sets { --w: min(22px, calc(var(--L) * .026)); flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 4px; }
+#p1 .sets { align-items: flex-end; }
+.side .set { flex-wrap: wrap; max-width: calc(var(--w) * 4 + 4px); row-gap: 3px; }
+
+#table { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "l t r" "l c r" "l b r"; gap: 6px 10px; min-height: 0; padding: 2px 0 6px; }
+.dz { display: flex; flex-wrap: wrap; gap: 4px 2px; --w: var(--dw); min-height: 0; overflow: hidden; padding: 3px; }
+.dz.many { --w: calc(var(--dw) * .8); }
+.dz .t.last { outline: 2px solid var(--brass); outline-offset: 1px; z-index: 1; }
+#d2 { grid-area: t; justify-content: center; align-content: flex-end; }
+#d0 { grid-area: b; justify-content: center; align-content: flex-start; }
+#d3 { grid-area: l; justify-content: flex-end; align-content: center; }
+#d1 { grid-area: r; justify-content: flex-start; align-content: center; }
+#centre { grid-area: c; justify-self: center; display: flex; align-items: baseline; gap: 10px; padding: 5px 16px; border-radius: 10px; background: rgba(0, 0, 0, .3); border: 1px solid var(--felt-line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#centre .round { font-family: var(--face); font-weight: 900; font-size: 18px; color: var(--brass); }
+#centre .meta { color: var(--muted); font-size: 12px; }
+
+/* me */
+#p0 { position: relative; padding: 0 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+#meInfo { display: flex; align-items: center; gap: 8px; --w: min(20px, calc(var(--L) * .024)); min-height: 28px; }
+#meInfo .hint { color: var(--muted); font-size: 12px; }
+#handRow { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding-top: 10px; min-height: calc(var(--tw) * 1.36 + 16px); }
+#hand { display: flex; gap: 2px; touch-action: none; }
+#hand .t { --w: var(--tw); cursor: pointer; transition: transform .1s; }
+#hand .t { transform-origin: 50% 100%; }
+#hand .t.sel { transform: translateY(-12px) scale(1.14); outline: 2px solid var(--brass); z-index: 2; }
+#hand .t.sel.pull { transform: translateY(-44px) scale(1.14); box-shadow: 0 10px 18px rgba(0, 0, 0, .45); }
+#hand .t.drawn { margin-left: 8px; }
+#hand .t.rdy { box-shadow: 0 0 0 2px var(--brass), 0 calc(var(--w) * .11) 0 var(--tile-back); }
+#hand.locked .t { cursor: default; filter: saturate(.85) brightness(.93); }
+#mySets { --w: calc(var(--tw) * .74); flex-wrap: nowrap; gap: 6px; }
+
+/* call buttons float over the table, above the hand */
+#acts { position: absolute; right: 14px; bottom: calc(var(--tw) * 1.36 + 34px); display: flex; gap: 10px; align-items: center; z-index: 8; }
+#acts button { min-width: 58px; height: 58px; padding: 0 14px; border-radius: 29px; border: 2px solid #f3cf85; background: var(--brass); color: var(--felt-deep); font-family: var(--face); font-weight: 900; font-size: 24px; display: flex; align-items: center; justify-content: center; gap: 6px; --w: 19px; box-shadow: 0 4px 12px rgba(0, 0, 0, .45); }
+#acts button.win { background: var(--red); border-color: #ee8a82; color: #fff; }
+#acts button.plain { background: #165950; border-color: var(--felt-line); color: var(--text); font-size: 18px; }
+#acts button.pass { background: rgba(0, 0, 0, .5); border-color: var(--felt-line); color: var(--text); font-size: 20px; }
+#acts .wait { color: var(--muted); font-size: 12.5px; background: rgba(0, 0, 0, .3); padding: 4px 12px; border-radius: 999px; }
+
+.bubble { position: absolute; left: 50%; top: 50%; font-family: var(--face); font-weight: 900; font-size: 30px; color: var(--felt-deep); background: var(--brass); width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; display: grid; place-items: center; z-index: 9; box-shadow: 0 4px 14px rgba(0, 0, 0, .4); animation: pop .9s ease-out forwards; pointer-events: none; }
+#p0 .bubble { top: -40px; } #p2 .bubble { top: 60px; } #p3 .bubble { left: 110%; } #p1 .bubble { left: -10%; }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0; } 18% { transform: scale(1.1); opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1); } }
+
+#tip { position: absolute; left: 50%; bottom: calc(var(--tw) * 1.36 + 64px); transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 12px; background: rgba(6, 30, 28, .93); border: 1.5px solid var(--brass); --w: 26px; white-space: nowrap; pointer-events: none; }
+#tip[hidden] { display: none; }
+#tip .lab { font-family: var(--face); font-weight: 900; font-size: 15px; color: var(--brass); }
+#tip .w { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+#tip em { font-style: normal; font-size: 10.5px; color: var(--muted); }
+
+/* dice */
+.die { display: inline-grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); width: var(--d, 16px); height: var(--d, 16px); padding: calc(var(--d, 16px) * .13); border-radius: 20%; background: #fffaf0; box-shadow: 0 2px 0 var(--ivory-edge); vertical-align: -3px; }
+.die i { width: 78%; height: 78%; border-radius: 50%; background: var(--ink); place-self: center; }
+.die.d1 i { grid-area: 2 / 2; background: var(--red); transform: scale(1.5); }
+.die.d2 i:nth-child(1), .die.d3 i:nth-child(1) { grid-area: 1 / 1; } .die.d2 i:nth-child(2), .die.d3 i:nth-child(3) { grid-area: 3 / 3; } .die.d3 i:nth-child(2) { grid-area: 2 / 2; }
+.die.d4 i, .die.d5 i, .die.d6 i { grid-area: auto; }
+.die.d4 i { background: var(--red); } .die.d4 i:nth-child(1) { grid-area: 1 / 1; } .die.d4 i:nth-child(2) { grid-area: 1 / 3; } .die.d4 i:nth-child(3) { grid-area: 3 / 1; } .die.d4 i:nth-child(4) { grid-area: 3 / 3; }
+.die.d5 i:nth-child(1) { grid-area: 1 / 1; } .die.d5 i:nth-child(2) { grid-area: 1 / 3; } .die.d5 i:nth-child(3) { grid-area: 2 / 2; } .die.d5 i:nth-child(4) { grid-area: 3 / 1; } .die.d5 i:nth-child(5) { grid-area: 3 / 3; }
+.die.d6 i:nth-child(1) { grid-area: 1 / 1; } .die.d6 i:nth-child(2) { grid-area: 2 / 1; } .die.d6 i:nth-child(3) { grid-area: 3 / 1; } .die.d6 i:nth-child(4) { grid-area: 1 / 3; } .die.d6 i:nth-child(5) { grid-area: 2 / 3; } .die.d6 i:nth-child(6) { grid-area: 3 / 3; }
+#dice { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); z-index: 12; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 26px; border-radius: 16px; background: rgba(6, 30, 28, .86); border: 1px solid var(--felt-line); }
+#dice[hidden] { display: none; }
+#dice .who { color: var(--muted); font-size: 12.5px; }
+#dice .row { display: flex; gap: 14px; --d: 46px; }
+#dice.rolling .die { animation: shake .16s linear infinite; } #dice.rolling .die:nth-child(2) { animation-delay: -.05s; } #dice.rolling .die:nth-child(3) { animation-delay: -.1s; }
+#dice .note { font-family: var(--face); font-weight: 900; font-size: 18px; color: var(--brass); }
+@keyframes shake { 0% { transform: rotate(-14deg) translateY(-3px); } 50% { transform: rotate(12deg) translateY(3px); } 100% { transform: rotate(-14deg) translateY(-3px); } }
+#hand .t.in { animation: dealin .22s ease-out; }
+@keyframes dealin { from { transform: translateY(-46px) scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+.notes { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12.5px; }
+.notes span { background: #e6dcc0; border-radius: 6px; padding: 2px 8px; }
+
+/* sheets */
+.sheet { position: absolute; inset: 0; background: rgba(4, 22, 20, .72); display: grid; place-items: center; z-index: 20; padding: 12px; }
+.sheet[hidden] { display: none; }
+.sheet .card { width: min(100%, 720px); max-height: 100%; overflow-y: auto; background: #f4eedd; color: var(--ink); border-radius: 16px; padding: 14px 18px; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 10px 22px; align-items: start; }
+.sheet .col { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.sheet h2 { font-family: var(--face); font-weight: 900; font-size: 21px; margin: 0; text-wrap: balance; }
+.sheet h2 small { font-family: var(--ui); font-size: 12.5px; font-weight: 500; color: #6b6a5c; margin-left: 8px; }
+.sheet h3 { font-size: 12.5px; margin: 0; color: #6b6a5c; font-weight: 600; }
+.sheet p { margin: 0; line-height: 1.55; font-size: 13px; }
+.winhand { display: flex; flex-wrap: wrap; gap: 6px 8px; --w: 21px; background: var(--felt); padding: 9px; border-radius: 10px; }
+.winhand .t.wt { outline: 2px solid var(--brass); outline-offset: 1px; }
+.fans { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 16px; font-size: 13px; }
+.fans div { display: flex; justify-content: space-between; border-bottom: 1px dotted #c9c0a6; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.total { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: #55544a; gap: 12px; }
+.total b { font-family: var(--face); font-size: 24px; color: var(--red); }
+.total strong { font-family: var(--face); font-weight: 900; font-size: 16px; color: var(--ink); white-space: nowrap; }
+table.sc { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.sc td { padding: 5px 2px; border-top: 1px solid #ddd3b8; } table.sc td:nth-child(n+2) { text-align: right; }
+.up { color: var(--green); font-weight: 700; } .down { color: var(--red); font-weight: 700; }
+.sheet .cta { height: 46px; border-radius: 12px; border: none; background: var(--felt); color: #fff; font-family: var(--face); font-weight: 900; font-size: 18px; flex: none; }
+.sheet ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
+@media (prefers-reduced-motion: reduce) { .bubble { animation-duration: .01s; } #hand .t { transition: none; } #hand .t.in, #dice.rolling .die { animation: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="p2"></div>
+  <button id="helpBtn" type="button">玩法</button>
+  <div id="mid">
+    <div class="side" id="p3"></div>
+    <div id="table">
+      <div class="dz" id="d3"></div><div class="dz" id="d2"></div><div class="dz" id="d1"></div>
+      <div id="centre"><span class="round" id="round"></span><span class="meta" id="meta"></span></div>
+      <div class="dz" id="d0"></div>
+    </div>
+    <div class="side" id="p1"></div>
+  </div>
+  <div id="p0">
+    <div id="meInfo"></div>
+    <div id="handRow"><div id="hand"></div><div class="sets" id="mySets"></div></div>
+  </div>
+  <div id="acts"></div>
+  <div id="tip" hidden></div>
+  <div id="dice" hidden></div>
+  <div class="sheet" id="result" hidden><div class="card" id="resultCard"></div></div>
+  <div class="sheet" id="help" hidden><div class="card">
+    <div class="col">
+      <h2>玩法</h2>
+      <ul>
+        <li>手機打橫玩。每人 16 隻牌，食糊要 5 副牌加一對眼（17 隻），花牌自動補花。</li>
+        <li>輪到你：手指喺牌上面滑動揀牌，揀中嗰隻會升高；向上拉出，或者再撳一下，就打出。</li>
+        <li>人哋打牌後可以「上」（只限上家）、「碰」、「槓」或「食糊」，唔要就撳「過」。</li>
+        <li>叫糊時可以撳「叮」再打出金邊嘅牌，滑到金邊牌會提你叫乜牌同剩幾多隻。叮咗之後唔可以轉牌，摸乜打乜。叮後一圈內有人出銃畀你叫「一發」，加 5 番。</li>
+        <li>過咗糊，要等自己再摸牌先可以再食（可以自摸）。</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>計分</h3>
+      <p>番數跟《港式台牌番數表》。每鋪：底 5 + 每番 1。出銃一家畀，自摸三家畀。莊家或連莊另加 2n+1 番。打完東南西北四圈完場。</p>
+      <p>暗槓、圍骰：每家畀 1 底。一二三：莊家每家畀 1 底。追：四家連續打同一隻牌，第一個打嘅每家畀 1 底（唔係字牌畀 2 底）。</p>
+      <p>拉：連續輸畀同一家，上鋪數 ×1.5 再加今鋪。反食返佢（踢半），上鋪數減半。</p>
+      <button class="cta" id="helpClose" type="button">返回牌局</button>
+    </div>
+  </div></div>
+</div>
+<script>
+// 港式台灣牌 engine — pure logic, no DOM. Runs in the browser (window.MJ) and in Node.
+// Designed as an action-driven state machine so a server can host it for online play later:
+//   game.options(seat) -> legal actions, game.act(seat, action) -> state change, game.viewFor(seat) -> redacted state.
+(function (root) {
+  'use strict';
+  const MJ = {};
+
+  // ---------- tiles ----------
+  // kinds: 0-8 萬, 9-17 筒, 18-26 索, 27-30 東南西北, 31-33 中發白, 34-37 春夏秋冬, 38-41 梅蘭菊竹
+  const NUMS = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  const SUITS = ['萬', '筒', '索'];
+  const HONORS = ['東', '南', '西', '北', '中', '發', '白'];
+  const FLOWERS = ['春', '夏', '秋', '冬', '梅', '蘭', '菊', '竹'];
+  const WINDS = ['東', '南', '西', '北'];
+  const isFlower = k => k >= 34;
+  const isHonor = k => k >= 27 && k < 34;
+  const isWind = k => k >= 27 && k < 31;
+  const isDragon = k => k >= 31 && k < 34;
+  const isNum = k => k < 27;
+  const suitOf = k => (k / 9) | 0; // number tiles only
+  const isTerm = k => k < 27 && (k % 9 === 0 || k % 9 === 8);
+  const ORPHANS = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+  const tileName = k => isNum(k) ? NUMS[k % 9] + SUITS[suitOf(k)] : isHonor(k) ? HONORS[k - 27] : FLOWERS[k - 34];
+  Object.assign(MJ, { NUMS, SUITS, HONORS, FLOWERS, WINDS, isFlower, isHonor, isNum, suitOf, tileName });
+
+  function counts(tiles) { const c = new Array(34).fill(0); for (const t of tiles) c[t]++; return c; }
+  MJ.counts = counts;
+
+  function rng(seed) { // mulberry32
+    let a = seed >>> 0;
+    return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+
+  // ---------- hand analysis ----------
+  function meldsOnly(c, need, start, acc, out) {
+    let i = start; while (i < 34 && !c[i]) i++;
+    if (need === 0) { if (i >= 34) out.push(acc.slice()); return; }
+    if (i >= 34) return;
+    if (c[i] >= 3) { c[i] -= 3; acc.push({ t: 'pung', k: i }); meldsOnly(c, need - 1, i, acc, out); acc.pop(); c[i] += 3; }
+    if (i < 27 && i % 9 <= 6 && c[i + 1] && c[i + 2]) {
+      c[i]--; c[i + 1]--; c[i + 2]--; acc.push({ t: 'chow', k: i }); meldsOnly(c, need - 1, i, acc, out); acc.pop(); c[i]++; c[i + 1]++; c[i + 2]++;
+    }
+  }
+  // all ways to split concealed tiles into `need` sets + a pair
+  function decompose(c, need) {
+    const out = [];
+    for (let p = 0; p < 34; p++) if (c[p] >= 2) {
+      c[p] -= 2; const res = []; meldsOnly(c, need, 0, [], res); c[p] += 2;
+      for (const s of res) out.push({ pair: p, sets: s });
+    }
+    return out;
+  }
+  function isLigu(c) { // 嚦咕嚦咕: 7 pairs + 1 triplet
+    let three = 0, n = 0;
+    for (let i = 0; i < 34; i++) { const v = c[i]; n += v; if (v === 1) return false; if (v === 3) three++; }
+    return n === 17 && three === 1;
+  }
+  function isOrphans(c) { // 十三么: one of each 么九 + one more 么九 as eyes + any one set
+    const r = c.slice(); let n = 0; for (let i = 0; i < 34; i++) n += r[i];
+    if (n !== 17) return false;
+    for (const o of ORPHANS) { if (!r[o]) return false; r[o]--; }
+    for (const o of ORPHANS) if (r[o]) {
+      r[o]--; const out = []; meldsOnly(r, 1, 0, [], out); r[o]++;
+      if (out.length) return true;
+    }
+    return false;
+  }
+  function isBuda(c) { // 十六不搭: 7 honors + three tiles ≥3 apart in every suit, one tile doubled
+    let n = 0, two = 0; for (let i = 0; i < 34; i++) { n += c[i]; if (c[i] > 2) return false; if (c[i] === 2) two++; }
+    if (n !== 17 || two !== 1) return false;
+    for (let i = 27; i < 34; i++) if (!c[i]) return false;
+    for (let s = 0; s < 3; s++) {
+      let last = -9, cnt = 0;
+      for (let j = 0; j < 9; j++) if (c[s * 9 + j]) { if (j - last < 3) return false; last = j; cnt++; }
+      if (cnt !== 3) return false;
+    }
+    return true;
+  }
+  // c: counts of concealed tiles incl. winning tile; openMelds: number of declared melds
+  function canWin(c, openMelds) {
+    if (decompose(c, 5 - openMelds).length) return true;
+    return openMelds === 0 && (isLigu(c) || isOrphans(c) || isBuda(c));
+  }
+  function waitsOf(c, openMelds) {
+    const w = [];
+    for (let k = 0; k < 34; k++) if (c[k] < 4) { c[k]++; if (canWin(c, openMelds)) w.push(k); c[k]--; }
+    return w;
+  }
+  Object.assign(MJ, { decompose, canWin, waitsOf, isLigu, isOrphans, isBuda });
+
+  // shanten for the standard shape (need sets + pair). -1 = complete, 0 = 聽牌
+  const shCache = new Map();
+  function shanten(c, need) {
+    const key = c.join('') + need;
+    const hit = shCache.get(key); if (hit !== undefined) return hit;
+    let best = 99;
+    (function rec(i, m, p, pair) {
+      while (i < 34 && !c[i]) i++;
+      if (i >= 34) { const s = 2 * (need - m) - Math.min(p, need - m) - (pair ? 1 : 0); if (s < best) best = s; return; }
+      const num = i < 27, pos = i % 9;
+      if (m < need) {
+        if (c[i] >= 3) { c[i] -= 3; rec(i, m + 1, p, pair); c[i] += 3; }
+        if (num && pos <= 6 && c[i + 1] && c[i + 2]) { c[i]--; c[i + 1]--; c[i + 2]--; rec(i, m + 1, p, pair); c[i]++; c[i + 1]++; c[i + 2]++; }
+      }
+      if (c[i] >= 2 && !pair) { c[i] -= 2; rec(i, m, p, true); c[i] += 2; }
+      if (m + p < need) {
+        if (c[i] >= 2) { c[i] -= 2; rec(i, m, p + 1, pair); c[i] += 2; }
+        if (num && pos <= 7 && c[i + 1]) { c[i]--; c[i + 1]--; rec(i, m, p + 1, pair); c[i]++; c[i + 1]++; }
+        if (num && pos <= 6 && c[i + 2]) { c[i]--; c[i + 2]--; rec(i, m, p + 1, pair); c[i]++; c[i + 2]++; }
+      }
+      const v = c[i]; c[i] = 0; rec(i + 1, m, p, pair); c[i] = v;
+    })(0, 0, 0, false);
+    if (shCache.size > 200000) shCache.clear();
+    shCache.set(key, best);
+    return best;
+  }
+  MJ.shanten = shanten;
+
+  // ---------- scoring (港式台牌番數表) ----------
+  const FREE = new Set(['正花', '爛花', '聽牌', '一發']); // items that do not stop a 雞糊
+  function scoreHand(x) {
+    // x: { hand (concealed incl. win tile), melds, flowers, winTile, selfDraw, seatWind, roundWind, ready, ippatsu,
+    //      tianTing, diTing, kongChain, flowerChain, lastTile, robKong, heaven, earth, human, discardCount, winTileVisible, waits }
+    const c = counts(x.hand);
+    const open = x.melds.filter(m => m.type !== 'ankan');
+    const concealed = open.length === 0;
+    const all = x.hand.slice(); for (const m of x.melds) all.push(...m.tiles);
+    const nF = x.flowers.length;
+    const hasHonor = all.some(isHonor), numTiles = all.filter(isNum);
+    const suits = new Set(numTiles.map(suitOf));
+    const hasW = all.some(isWind), hasD = all.some(isDragon);
+    const kongs = x.melds.filter(m => m.type !== 'chow' && m.type !== 'pung');
+
+    function common(special) {
+      const it = [];
+      // flowers
+      if (nF) {
+        const good = x.flowers.filter(f => (f - 34) % 4 === x.seatWind).length;
+        if (good) it.push(['正花', 2 * good]);
+        if (nF - good) it.push(['爛花', nF - good]);
+      }
+      if (!special || special === 'ligu') {
+        if (!hasHonor && !nF) it.push(['無字花', 8]);
+        else { if (!nF) it.push(['無花', 2]); if (!hasHonor) it.push(['無字', 2]); }
+      } else if (!nF) it.push(['無花', 2]);
+      // concealed / ready
+      if (concealed) { if (!(x.ready && !x.tianTing && !x.diTing)) it.push(['門清', 5]); if (x.selfDraw) it.push(['門清自摸', 5]); }
+      else if (x.selfDraw) it.push(['自摸', 1]);
+      if (x.tianTing) it.push(['天聽', 60]);
+      else if (x.diTing) it.push(['地聽', 40]);
+      else if (x.ready) it.push(concealed ? ['門清聽', 20] : ['聽牌', 5]);
+      if (x.ippatsu && !x.selfDraw) it.push(['一發', 5]); // 叮後一圈內有人出銃
+      // kongs
+      const an = kongs.filter(m => m.type === 'ankan').length, mk = kongs.length - an;
+      if (mk) it.push(['明槓', mk]);
+      if (an) it.push(['暗槓', 2 * an]);
+      if (x.robKong) it.push(['搶槓', 5]);
+      if (x.selfDraw && x.kongChain === 1) it.push(['槓上食糊', 5]);
+      if (x.selfDraw && x.kongChain >= 2) it.push(['槓上槓食糊', 20 * Math.pow(2, x.kongChain - 2)]);
+      if (x.selfDraw && x.flowerChain >= 1) it.push(['花上食糊', 2 * x.flowerChain - 1]);
+      if (x.lastTile) it.push(x.selfDraw ? ['海底撈月', 20] : ['河底撈月', 10]);
+      if (x.winTileVisible === 3) it.push(['明絕', 10]);
+      if (x.heaven) it.push(['天糊', 200]);
+      else if (x.earth) it.push(['地糊', 200]);
+      else if (x.human) it.push(['人糊', 80]);
+      else if (x.discardCount <= 4) it.push(['四子', 60]);
+      else if (x.discardCount <= 7) it.push(['七子', 35]);
+      else if (x.discardCount <= 10) it.push(['十子', 15]);
+      if (special && special !== 'ligu') return it;
+      // suits
+      if (!numTiles.length) it.push(['字一色', 200]);
+      else if (suits.size === 1) it.push(hasHonor ? ['混一色', 40] : ['清一色', 100]);
+      else if (suits.size === 2) it.push(['缺一門', 8]);
+      else if (hasW && hasD) {
+        const f1 = x.flowers.some(f => f < 38), f2 = x.flowers.some(f => f >= 38);
+        it.push(f1 && f2 ? ['七門齊', 20] : ['五門齊', 15]);
+      }
+      // numbers
+      if (numTiles.length) {
+        const ns = new Set(numTiles.map(k => k % 9));
+        if (!hasHonor && !numTiles.some(isTerm)) it.push(['斷么九', 8]);
+        const arr = [...ns];
+        if (arr.every(n => n >= 5)) it.push(['大於五', 50]);
+        else if (arr.every(n => n <= 3)) it.push(['小於五', 50]);
+        else if (!ns.has(4)) it.push(['缺五', 10]);
+        if (ns.size === 2) it.push(['兩數', 100]); else if (ns.size === 3) it.push(['三數', 60]);
+        const green = new Set([19, 20, 21, 23, 25, 32]);
+        if (all.every(k => green.has(k))) it.push(['綠一色', 200]);
+      }
+      return it;
+    }
+
+    function shape(d, place) {
+      // place: {where:'pair'} | {where:'set', idx} — which group the winning tile completed
+      const it = [];
+      const sets = x.melds.map(m => ({ t: m.type === 'chow' ? 'chow' : 'pung', k: m.tiles[0], open: m.type !== 'ankan', kong: m.type !== 'chow' && m.type !== 'pung' }));
+      d.sets.forEach((s, i) => sets.push({ t: s.t, k: s.k, open: false, winOpen: !x.selfDraw && place && place.where === 'set' && place.idx === i && s.t === 'pung' }));
+      const chows = sets.filter(s => s.t === 'chow'), pungs = sets.filter(s => s.t === 'pung');
+      const pair = d.pair;
+      const v = (isOpen, lo, hi) => isOpen ? lo : hi;
+      // 平糊 / 對對
+      let flat = false;
+      if (chows.length === 5) { flat = true; it.push(!hasHonor && !nF ? ['無字花大平糊', 20] : ['平糊', 8]); }
+      const dark = pungs.filter(s => !s.open && !s.winOpen).length;
+      let kankan = false;
+      if (kongs.length === 5) it.push(['廿二羅漢', 300]);
+      else {
+        if (dark === 5 && x.selfDraw) { kankan = true; it.push(['坎坎糊', 200]); }
+        else {
+          if (pungs.length === 5) it.push(['對對糊', 40]);
+          if (dark >= 2) it.push([['二暗刻', '三暗刻', '四暗刻', '五暗刻'][dark - 2], [5, 15, 30, 60][dark - 2]]);
+        }
+      }
+      // honors
+      const dP = pungs.filter(s => isDragon(s.k)).length, wP = pungs.filter(s => isWind(s.k)).length;
+      if (dP === 3) it.push(['大三元', 80]);
+      else if (dP === 2 && isDragon(pair)) it.push(['小三元', 40]);
+      else for (const s of pungs) if (isDragon(s.k)) it.push([HONORS[s.k - 27], 2]);
+      if (wP === 4) it.push(['大四喜', 160]);
+      else if (wP === 3 && isWind(pair)) it.push(['小四喜', 80]);
+      else if (wP === 3) it.push(['大三風', 60]);
+      else if (wP === 2 && isWind(pair)) it.push(['小三風', 30]);
+      else for (const s of pungs) if (isWind(s.k)) {
+        const w = s.k - 27, n = (w === x.seatWind ? 2 : 0) + (w === x.roundWind ? 2 : 0);
+        it.push([HONORS[w] + (n ? '（正風）' : ''), n || 1]);
+      }
+      // wait + eyes
+      const eye258 = isNum(pair) && [1, 4, 7].includes(pair % 9);
+      let wait = null;
+      if (place) {
+        if (place.where === 'pair') wait = 'single';
+        else { const s = d.sets[place.idx]; if (s.t === 'pung') wait = 'pung'; else { const o = x.winTile - s.k; wait = o === 1 || (o === 2 && s.k % 9 === 0) || (o === 0 && s.k % 9 === 6) ? 'single' : 'open'; } }
+      }
+      const one = x.waits && x.waits.length === 1;
+      if (one && place && place.where === 'pair' && eye258) it.push(['獨獨將眼', 5]);
+      else {
+        if (eye258) it.push(['將眼', 2]);
+        if (one) it.push(['獨獨', 2]);
+        else if (wait === 'pung') it.push(['對碰', 2]);
+        else if (wait === 'single') it.push(['假獨', 1]);
+      }
+      // identical chows
+      const byK = {}; chows.forEach(s => (byK[s.k] = byK[s.k] || []).push(s));
+      const groups = Object.values(byK), anyOpen = g => g.some(s => s.open);
+      const pairs2 = groups.filter(g => g.length === 2), triples = groups.filter(g => g.length >= 3);
+      for (const g of triples) it.push(['三般高', v(anyOpen(g), 40, 80)]);
+      if (pairs2.length === 2) it.push(['雙般高', v(anyOpen(pairs2[0]) || anyOpen(pairs2[1]), 20, 40)]);
+      else if (pairs2.length === 1) it.push(['般高', v(anyOpen(pairs2[0]), 5, 10)]);
+      // same sequence across suits
+      const byN = {}; chows.forEach(s => (byN[s.k % 9] = byN[s.k % 9] || []).push(s));
+      let xiang3 = false;
+      for (const g of Object.values(byN)) {
+        const ss = new Set(g.map(s => suitOf(s.k)));
+        if (ss.size === 3) { xiang3 = true; it.push(['三相逢', v(anyOpen(g), 15, 30)]); } else if (ss.size === 2) it.push(['兩相逢', 3]);
+        if (g.length === 4) it.push(['四同順', 20]); if (g.length === 5) it.push(['五同順', 60]);
+      }
+      // 姊妹: consecutive pungs in one suit
+      const SIS = { 2: ['兩姊妹', 5, '小三姊妹', 10], 3: ['大三姊妹', 20, '小四姊妹', 30], 4: ['大四姊妹', 60, '小五姊妹', 80], 5: ['大五姊妹', 160, '小六姊妹', 200] };
+      for (let s = 0; s < 3; s++) {
+        const has = n => pungs.some(q => q.k === s * 9 + n);
+        for (let n = 0; n < 9; n++) if (has(n) && !(n > 0 && has(n - 1))) {
+          let e = n; while (e < 8 && has(e + 1)) e++;
+          const L = e - n + 1, small = isNum(pair) && suitOf(pair) === s && (pair % 9 === n - 1 || pair % 9 === e + 1);
+          if (L >= 2) it.push(small ? [SIS[L][2], SIS[L][3]] : [SIS[L][0], SIS[L][1]]);
+        }
+      }
+      // 兄弟: same number pungs across suits
+      for (let n = 0; n < 9; n++) {
+        const ss = [0, 1, 2].filter(s => pungs.some(q => q.k === s * 9 + n));
+        if (ss.length === 3) it.push(['大三兄弟', 20]);
+        else if (ss.length === 2) { const third = [0, 1, 2].find(s => !ss.includes(s)); it.push(pair === third * 9 + n ? ['小三兄弟', 10] : ['兩兄弟', 5]); }
+      }
+      // 四歸
+      const ca = counts(all.filter(k => k < 34));
+      for (let k = 0; k < 27; k++) if (ca[k] === 4 && !kongs.some(m => m.tiles[0] === k)) {
+        const inCh = chows.filter(s => k >= s.k && k <= s.k + 2), pg = pungs.find(s => s.k === k);
+        const op = inCh.some(s => s.open) || (pg && (pg.open || pg.winOpen));
+        if (pg) it.push(['四歸一', v(op, 5, 10)]); else if (pair === k) it.push(['四歸二', v(op, 10, 20)]); else it.push(['四歸四', v(op, 20, 40)]);
+      }
+      // dragons (straights)
+      const chowAt = k => chows.filter(s => s.k === k), darkAt = k => chowAt(k).some(s => !s.open);
+      let pure = false;
+      for (let s = 0; s < 3 && !pure; s++) {
+        const ks = [s * 9, s * 9 + 3, s * 9 + 6];
+        if (ks.every(k => chowAt(k).length)) { pure = true; it.push(['清龍', v(!ks.every(darkAt), 15, 30)]); }
+      }
+      let mixed = false;
+      if (!pure) for (const perm of [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]) {
+        const ks = perm.map((s, i) => s * 9 + i * 3);
+        if (ks.every(k => chowAt(k).length)) { mixed = true; it.push(['雜龍', v(!ks.every(darkAt), 8, 15)]); break; }
+      }
+      if ((pure || mixed) && xiang3) it.push(['大龍鳳', 20]);
+      // steps
+      let step = false;
+      for (let s = 0; s < 3 && !step; s++) for (const g of [1, 2]) for (let n = 0; n + 2 * g <= 6 && !step; n++) {
+        const ks = [0, 1, 2].map(i => s * 9 + n + i * g);
+        if (ks.every(k => chowAt(k).length)) { step = true; it.push(['一色三步高', v(!ks.every(darkAt), 15, 30)]); }
+      }
+      if (!step) outer: for (const perm of [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]) for (let n = 0; n <= 4; n++) {
+        const ks = perm.map((s, i) => s * 9 + n + i);
+        if (ks.every(k => chowAt(k).length)) { it.push(['三色三步高', v(!ks.every(darkAt), 5, 10)]); break outer; }
+      }
+      // terminals
+      const setHasTH = s => s.t === 'pung' ? (isHonor(s.k) || isTerm(s.k)) : (s.k % 9 === 0 || s.k % 9 === 6);
+      if (numTiles.length && sets.every(setHasTH) && (isHonor(pair) || isTerm(pair))) {
+        const allTH = all.every(k => isHonor(k) || isTerm(k) || isFlower(k));
+        it.push(allTH ? (hasHonor ? ['混老頭', 60] : ['清老頭', 300]) : (hasHonor ? ['混帶么', 30] : ['全帶么', 80]));
+      }
+      if (!hasHonor) for (let n = 1; n <= 7; n++) {
+        const inSet = s => s.t === 'pung' ? s.k % 9 === n : (n >= s.k % 9 && n <= s.k % 9 + 2);
+        if (sets.every(inSet) && pair % 9 === n) { it.push(['全帶' + NUMS[n], 80]); break; }
+      }
+      // 求人
+      if (open.length === 5 && !kongs.length) it.push(x.selfDraw ? ['半求人', 15] : ['全求人', 30]);
+      return { it, kankan };
+    }
+
+    const cands = [];
+    const finish = (base, extra, drop) => {
+      let items = base.filter(i => !(drop && drop.includes(i[0]))).concat(extra);
+      if (items.every(i => FREE.has(i[0]))) items.push(['雞糊', 30]);
+      cands.push({ items, total: items.reduce((a, i) => a + i[1], 0) });
+    };
+    const need = 5 - x.melds.length;
+    const ds = decompose(c, need);
+    if (ds.length) {
+      const base = common(null);
+      for (const d of ds) {
+        const places = [];
+        if (x.winTile != null) {
+          if (d.pair === x.winTile) places.push({ where: 'pair' });
+          d.sets.forEach((s, i) => { if (s.t === 'pung' ? s.k === x.winTile : (x.winTile >= s.k && x.winTile <= s.k + 2)) places.push({ where: 'set', idx: i }); });
+        }
+        if (!places.length) places.push(null);
+        for (const pl of places) {
+          const r = shape(d, pl);
+          const drop = [];
+          if (r.kankan) drop.push('門清');
+          if (r.it.some(i => i[0] === '無字花大平糊')) drop.push('無字花');
+          if (r.it.some(i => i[0] === '混老頭' || i[0] === '清老頭')) drop.push('兩數');
+          finish(base, r.it, drop);
+        }
+      }
+    }
+    if (!x.melds.length) {
+      if (isLigu(c)) finish(common('ligu'), [['嚦咕嚦咕', x.selfDraw ? 60 : 50]]);
+      if (isOrphans(c)) finish(common('orphans'), [['十三么', 160]]);
+      if (isBuda(c)) finish(common('buda'), [['十六不搭', 50]]);
+    }
+    cands.sort((a, b) => b.total - a.total);
+    return cands[0] || null;
+  }
+  MJ.scoreHand = scoreHand;
+
+  // ---------- game ----------
+  const RESERVE = 16; // tiles left unplayed at a drawn hand
+  class Game {
+    constructor(opts) {
+      opts = opts || {};
+      this.rand = rng(opts.seed != null ? opts.seed : (Math.random() * 2 ** 31) | 0);
+      this.base = opts.base != null ? opts.base : 5; // 底
+      this.perFan = opts.perFan != null ? opts.perFan : 1; // 每番
+      this.scores = [0, 0, 0, 0];
+      this.pull = [0, 1, 2, 3].map(() => [0, 0, 0, 0]); // 拉: pull[loser][winner] = amount still riding on a winning run
+      this.round = 0; // 圈
+      this.dealer = Math.floor(this.rand() * 4);
+      this.firstDealer = this.dealer;
+      this.streak = 0;
+      this.handNo = 0;
+      this.over = false;
+      this.events = [];
+      this.startHand();
+    }
+    seatWind(s) { return (s - this.dealer + 4) % 4; }
+    live() { return this.wall.length - RESERVE; }
+    emit(e) { this.events.push(e); }
+
+    startHand() {
+      const w = [];
+      for (let k = 0; k < 34; k++) for (let i = 0; i < 4; i++) w.push(k);
+      for (let k = 34; k < 42; k++) w.push(k);
+      for (let i = w.length - 1; i > 0; i--) { const j = Math.floor(this.rand() * (i + 1)); [w[i], w[j]] = [w[j], w[i]]; }
+      this.wall = w;
+      this.handNo++;
+      this.players = [0, 1, 2, 3].map(() => ({ hand: [], melds: [], flowers: [], discards: [], ready: false, ippatsu: false, tianTing: false, diTing: false, passedWin: false }));
+      this.river = []; this.totalDiscards = 0; this.anyCall = false;
+      this.result = null; this.pending = null; this.lastDiscard = null;
+      this.kongChain = 0; this.flowerChain = 0; this.drawn = null; this.canTsumo = true; this.lastTileFlag = false;
+      // side payments this hand (暗槓, 追, 一二三, 圍骰): paid at once, 1 底 each
+      this.side = []; this.sideDelta = [0, 0, 0, 0];
+      this.dice = [0, 0, 0].map(() => 1 + Math.floor(this.rand() * 6));
+      const dk = this.dice.slice().sort().join('');
+      if (dk === '123') this.sideAll('一二三', this.dealer, this.base, false);
+      else if (this.dice[0] === this.dice[1] && this.dice[1] === this.dice[2]) this.sideAll('圍骰', this.dealer, this.base, true);
+      for (let r = 0; r < 4; r++) for (let i = 0; i < 4; i++) { const s = (this.dealer + i) % 4; for (let j = 0; j < 4; j++) this.players[s].hand.push(this.wall.shift()); }
+      this.players[this.dealer].hand.push(this.wall.shift());
+      // 補花, dealer first, until nobody holds a flower
+      let again = true;
+      while (again) {
+        again = false;
+        for (let i = 0; i < 4; i++) {
+          const p = this.players[(this.dealer + i) % 4];
+          for (let j = p.hand.length - 1; j >= 0; j--) if (isFlower(p.hand[j])) { p.flowers.push(p.hand[j]); p.hand.splice(j, 1); p.hand.push(this.wall.pop()); again = true; }
+        }
+      }
+      for (const p of this.players) p.hand.sort((a, b) => a - b);
+      this.turn = this.dealer; this.phase = 'turn';
+      this.emit({ type: 'deal' });
+    }
+
+    // seat collects amt from (or pays amt to) each other player
+    sideAll(label, seat, amt, collects) {
+      for (let q = 0; q < 4; q++) if (q !== seat) {
+        const d = collects ? amt : -amt;
+        this.scores[seat] += d; this.scores[q] -= d; this.sideDelta[seat] += d; this.sideDelta[q] -= d;
+      }
+      this.side.push({ label, seat, amt, collects });
+    }
+
+    // ----- drawing -----
+    drawFor(seat, fromTail) {
+      const p = this.players[seat];
+      if (!fromTail && this.live() <= 0) return this.endDraw();
+      for (;;) {
+        if (!this.wall.length) return this.endDraw();
+        const t = fromTail ? this.wall.pop() : this.wall.shift();
+        if (isFlower(t)) { p.flowers.push(t); this.flowerChain++; fromTail = true; this.emit({ type: 'flower', seat, tile: t }); continue; }
+        p.hand.push(t); this.drawn = t; break;
+      }
+      p.passedWin = false;
+      this.turn = seat; this.phase = 'turn'; this.canTsumo = true;
+      this.lastTileFlag = this.live() <= 0;
+    }
+
+    // ----- options -----
+    options(seat) {
+      const p = this.players[seat], out = [];
+      if (this.phase === 'turn' && seat === this.turn) {
+        const c = counts(p.hand);
+        if (this.canTsumo && canWin(c, p.melds.length)) out.push({ type: 'win' });
+        if (!p.ready && this.wall.length > 0) {
+          for (let k = 0; k < 34; k++) if (c[k] === 4) out.push({ type: 'ankan', tile: k });
+          for (const m of p.melds) if (m.type === 'pung' && c[m.tiles[0]]) out.push({ type: 'kakan', tile: m.tiles[0] });
+        }
+        if (p.ready) out.push({ type: 'discard', tile: this.drawn });
+        else {
+          const seen = new Set();
+          for (const t of p.hand) if (!seen.has(t)) {
+            seen.add(t);
+            c[t]--; const tenpai = waitsOf(c, p.melds.length).length > 0; c[t]++;
+            out.push({ type: 'discard', tile: t, canReady: tenpai });
+          }
+        }
+      } else if ((this.phase === 'claim' || this.phase === 'robkong') && this.pending.opts[seat] && !(seat in this.pending.resp)) {
+        return this.pending.opts[seat].concat([{ type: 'pass' }]);
+      }
+      return out;
+    }
+    waiting() { // seats that must act now
+      if (this.phase === 'turn') return [this.turn];
+      if (this.phase === 'claim' || this.phase === 'robkong') return Object.keys(this.pending.opts).map(Number).filter(s => !(s in this.pending.resp));
+      return [];
+    }
+
+    // ----- actions -----
+    act(seat, a) {
+      const legal = this.options(seat).some(o => o.type === a.type && (o.tile === undefined || o.tile === a.tile) && (a.type !== 'chow' || o.low === a.low) && (!a.ready || o.canReady));
+      if (!legal) throw new Error('illegal action ' + JSON.stringify(a) + ' by ' + seat + ' in ' + this.phase);
+      const p = this.players[seat];
+      if (this.phase === 'turn') {
+        if (a.type === 'win') return this.endWin([seat], true, null);
+        if (a.type === 'discard') return this.discard(seat, a.tile, !!a.ready);
+        if (a.type === 'ankan') {
+          for (let i = 0; i < 4; i++) p.hand.splice(p.hand.indexOf(a.tile), 1);
+          p.melds.push({ type: 'ankan', tiles: [a.tile, a.tile, a.tile, a.tile], from: seat });
+          this.afterCall(); this.emit({ type: 'call', seat, call: '暗槓' });
+          this.sideAll('暗槓', seat, this.base, true);
+          this.kongChain++; return this.drawFor(seat, true);
+        }
+        if (a.type === 'kakan') {
+          const opts = {};
+          for (let s = 0; s < 4; s++) if (s !== seat) {
+            const q = this.players[s], c = counts(q.hand); c[a.tile]++;
+            if (!q.passedWin && canWin(c, q.melds.length)) opts[s] = [{ type: 'win' }];
+          }
+          this.emit({ type: 'call', seat, call: '槓' });
+          this.pending = { tile: a.tile, from: seat, opts, resp: {}, kakan: true };
+          this.phase = 'robkong';
+          if (!Object.keys(opts).length) this.resolve();
+          return;
+        }
+      } else {
+        this.pending.resp[seat] = a;
+        if (a.type === 'pass' && this.pending.opts[seat].some(o => o.type === 'win')) p.passedWin = true;
+        if (!this.waiting().length) this.resolve();
+      }
+    }
+    afterCall() { this.anyCall = true; for (const q of this.players) q.ippatsu = false; }
+
+    discard(seat, tile, declare) {
+      const p = this.players[seat];
+      p.hand.splice(p.hand.indexOf(tile), 1); p.hand.sort((a, b) => a - b);
+      if (p.ippatsu) p.ippatsu = false;
+      if (declare) {
+        p.ready = true; p.ippatsu = true;
+        if (!this.anyCall && p.discards.length === 0) { if (seat === this.dealer) p.tianTing = true; else p.diTing = true; }
+        this.emit({ type: 'call', seat, call: '叮' });
+      }
+      p.discards.push(tile); this.river.push({ tile, seat }); this.totalDiscards++;
+      this.kongChain = 0; this.flowerChain = 0; this.drawn = null;
+      this.lastDiscard = { tile, seat };
+      this.emit({ type: 'discard', seat, tile });
+      // 追: all four players throw the same tile one after another → the first one pays (字牌 1 底, 其他 2 底)
+      const rv = this.river;
+      if (rv.length >= 4) {
+        const l4 = rv.slice(-4);
+        if (l4.every(r => r.tile === tile && !r.claimed) && new Set(l4.map(r => r.seat)).size === 4) {
+          this.sideAll('追', l4[0].seat, isHonor(tile) ? this.base : 2 * this.base, false);
+          this.emit({ type: 'call', seat: l4[0].seat, call: '追' });
+        }
+      }
+      const last = this.live() <= 0, opts = {};
+      for (let i = 1; i < 4; i++) {
+        const s = (seat + i) % 4, q = this.players[s], c = counts(q.hand), o = [];
+        c[tile]++; if (!q.passedWin && canWin(c, q.melds.length)) o.push({ type: 'win' }); c[tile]--;
+        if (!q.ready && !last) {
+          if (c[tile] === 3) o.push({ type: 'kong', tile });
+          if (c[tile] >= 2) o.push({ type: 'pung', tile });
+          if (i === 1 && isNum(tile)) {
+            const n = tile % 9;
+            for (const lo of [tile - 2, tile - 1, tile]) {
+              if (lo < 0 || suitOf(lo) !== suitOf(tile) || lo % 9 > 6 || lo % 9 > n) continue;
+              if ([lo, lo + 1, lo + 2].every(k => k === tile || c[k])) o.push({ type: 'chow', tile, low: lo });
+            }
+          }
+        }
+        if (o.length) opts[s] = o;
+      }
+      this.pending = { tile, from: seat, opts, resp: {}, last };
+      this.phase = 'claim';
+      if (!Object.keys(opts).length) this.resolve();
+    }
+
+    resolve() {
+      const pd = this.pending, r = pd.resp, seats = Object.keys(r).map(Number);
+      const winners = seats.filter(s => r[s].type === 'win');
+      // order winners by turn order from the discarder
+      winners.sort((a, b) => ((a - pd.from + 4) % 4) - ((b - pd.from + 4) % 4));
+      if (pd.kakan) {
+        if (winners.length) return this.endWin(winners, false, pd);
+        const p = this.players[pd.from];
+        p.hand.splice(p.hand.indexOf(pd.tile), 1);
+        const m = p.melds.find(m => m.type === 'pung' && m.tiles[0] === pd.tile); m.type = 'kakan'; m.tiles.push(pd.tile);
+        this.afterCall(); this.pending = null; this.kongChain++;
+        return this.drawFor(pd.from, true);
+      }
+      if (winners.length) return this.endWin(winners, false, pd);
+      const take = seats.find(s => r[s].type === 'pung' || r[s].type === 'kong') ?? seats.find(s => r[s].type === 'chow');
+      this.pending = null;
+      if (take === undefined) return this.drawFor((pd.from + 1) % 4, false);
+      const a = r[take], p = this.players[take], t = pd.tile;
+      this.river[this.river.length - 1].claimed = true; this.players[pd.from].discards.pop();
+      const rm = k => p.hand.splice(p.hand.indexOf(k), 1);
+      this.afterCall();
+      this.turn = take; this.phase = 'turn'; this.drawn = null; this.canTsumo = false;
+      if (a.type === 'pung') { rm(t); rm(t); p.melds.push({ type: 'pung', tiles: [t, t, t], from: pd.from }); this.emit({ type: 'call', seat: take, call: '碰' }); }
+      else if (a.type === 'chow') { for (const k of [a.low, a.low + 1, a.low + 2]) if (k !== t) rm(k); p.melds.push({ type: 'chow', tiles: [a.low, a.low + 1, a.low + 2], from: pd.from, called: t }); this.emit({ type: 'call', seat: take, call: '上' }); }
+      else { rm(t); rm(t); rm(t); p.melds.push({ type: 'kong', tiles: [t, t, t, t], from: pd.from }); this.emit({ type: 'call', seat: take, call: '槓' }); this.kongChain = 1; return this.drawFor(take, true); }
+    }
+
+    visibleCount(tile) {
+      let n = 0;
+      for (const p of this.players) { for (const d of p.discards) if (d === tile) n++; for (const m of p.melds) if (m.type !== 'ankan') for (const k of m.tiles) if (k === tile) n++; }
+      return n;
+    }
+
+    // ----- hand end -----
+    endWin(winners, selfDraw, pd) {
+      const res = { type: 'win', selfDraw, winners: [], delta: [0, 0, 0, 0], from: pd ? pd.from : null, dealer: this.dealer, streak: this.streak };
+      const dealerBonus = 2 * this.streak + 1;
+      for (const s of winners) {
+        const p = this.players[s];
+        const winTile = selfDraw ? this.drawn : pd.tile;
+        const hand = p.hand.slice(); if (!selfDraw) hand.push(winTile);
+        let waits = null;
+        if (winTile != null) { const c = counts(hand); c[winTile]--; waits = waitsOf(c, p.melds.length); }
+        const first = !this.anyCall && p.discards.length === 0;
+        const sc = scoreHand({
+          hand, melds: p.melds, flowers: p.flowers, winTile, selfDraw, seatWind: this.seatWind(s), roundWind: this.round,
+          ready: p.ready, ippatsu: p.ippatsu, tianTing: p.tianTing, diTing: p.diTing,
+          kongChain: selfDraw ? this.kongChain : 0, flowerChain: selfDraw ? this.flowerChain : 0,
+          lastTile: selfDraw ? this.lastTileFlag : pd.last, robKong: !!(pd && pd.kakan),
+          heaven: selfDraw && first && s === this.dealer && winTile == null,
+          earth: selfDraw && first && s !== this.dealer,
+          human: !selfDraw && first && s !== this.dealer && !pd.kakan,
+          discardCount: this.totalDiscards, winTileVisible: winTile == null ? 0 : this.visibleCount(winTile) - (selfDraw ? 0 : 1), waits,
+        });
+        if (winners.length > 1) { sc.items.push([winners.length === 2 ? '雙響' : '三響', winners.length === 2 ? 5 : 10]); sc.total += winners.length === 2 ? 5 : 10; }
+        const payers = selfDraw ? [0, 1, 2, 3].filter(q => q !== s) : [pd.from];
+        const pays = [];
+        for (const q of payers) {
+          const bonus = (s === this.dealer || q === this.dealer) ? dealerBonus : 0;
+          const amt = this.base + (sc.total + bonus) * this.perFan;
+          pays.push({ seat: q, fan: sc.total + bonus, amount: amt });
+          res.delta[q] -= amt; res.delta[s] += amt;
+        }
+        res.winners.push({ seat: s, items: sc.items, fan: sc.total, winTile, hand: hand.slice().sort((a, b) => a - b), melds: p.melds, flowers: p.flowers, pays, dealerBonus });
+      }
+      this.finish(res, winners.includes(this.dealer));
+    }
+    endDraw() { this.finish({ type: 'draw', delta: [0, 0, 0, 0], dealer: this.dealer, streak: this.streak }, true); }
+    // 拉: beat the same player again and the old amount comes back ×1.5 on top; if the loser hits back
+    // (self-draw or the old winner's discard) the old amount is halved (踢半). Any other result ends the run.
+    applyPull(res) {
+      const d = [0, 0, 0, 0], np = [0, 1, 2, 3].map(() => [0, 0, 0, 0]), notes = [];
+      for (const w of res.winners) for (const p of w.pays) {
+        const W = w.seat, L = p.seat, old = this.pull[L][W], tot = p.amount + Math.round(old * 1.5);
+        d[L] -= tot - old; d[W] += tot - old; np[L][W] = tot;
+        if (old) notes.push({ type: 'pull', L, W, old, a: p.amount, tot });
+      }
+      for (let L = 0; L < 4; L++) for (let W = 0; W < 4; W++) {
+        const old = this.pull[L][W]; if (!old || np[L][W]) continue;
+        if (res.winners.some(w => w.seat === L && w.pays.some(p => p.seat === W))) {
+          const half = Math.round(old / 2); d[L] += old - half; d[W] -= old - half;
+          notes.push({ type: 'kick', L, W, old, half });
+        }
+      }
+      this.pull = np; res.delta = d; res.pull = notes;
+    }
+    finish(res, dealerStays) {
+      if (res.type === 'win') this.applyPull(res);
+      for (let i = 0; i < 4; i++) { this.scores[i] += res.delta[i]; res.delta[i] += this.sideDelta[i]; }
+      res.side = this.side;
+      res.dealerStays = dealerStays;
+      this.result = res; this.phase = 'end'; this.pending = null;
+      this.emit({ type: 'end' });
+    }
+    nextHand() {
+      if (this.phase !== 'end' || this.over) return;
+      if (this.result.dealerStays) this.streak++;
+      else {
+        this.streak = 0; this.dealer = (this.dealer + 1) % 4;
+        if (this.dealer === this.firstDealer) { this.round++; if (this.round > 3) { this.over = true; return; } }
+      }
+      this.startHand();
+    }
+
+    // state as one seat is allowed to see it (for a future server → client push)
+    viewFor(seat) {
+      const end = this.phase === 'end';
+      return {
+        round: this.round, dealer: this.dealer, streak: this.streak, scores: this.scores.slice(), wallLeft: Math.max(0, this.live()),
+        phase: this.phase, turn: this.turn, river: this.river, lastDiscard: this.lastDiscard, result: this.result, over: this.over,
+        drawn: seat === this.turn ? this.drawn : null,
+        players: this.players.map((p, s) => ({
+          hand: s === seat || end ? p.hand.slice() : null, handCount: p.hand.length,
+          melds: p.melds.map(m => m.type === 'ankan' && s !== seat && !end ? { type: 'ankan', tiles: [-1, -1, -1, -1] } : m),
+          flowers: p.flowers, discards: p.discards, ready: p.ready, wind: this.seatWind(s),
+        })),
+        options: this.options(seat),
+      };
+    }
+  }
+  MJ.Game = Game;
+
+  // ---------- AI ----------
+  MJ.ai = function (g, seat) {
+    const p = g.players[seat], opts = g.options(seat);
+    if (!opts.length) return null;
+    const win = opts.find(o => o.type === 'win'); if (win) return win;
+    const need = 5 - p.melds.length, c = counts(p.hand);
+    if (g.phase === 'turn') {
+      const s0 = shanten(c, need);
+      for (const o of opts) {
+        if (o.type === 'ankan') { c[o.tile] -= 4; const s = shanten(c, need - 1); c[o.tile] += 4; if (s <= s0) return o; }
+        if (o.type === 'kakan') { c[o.tile]--; const s = shanten(c, need); c[o.tile]++; if (s <= s0) return o; }
+      }
+      const ds = opts.filter(o => o.type === 'discard');
+      if (ds.length === 1) return ds[0];
+      // tiles this seat can see
+      const seen = c.slice();
+      for (const q of g.players) { for (const d of q.discards) seen[d]++; for (const m of q.melds) if (m.type !== 'ankan' || q === p) for (const k of m.tiles) seen[k]++; }
+      let best = null;
+      const scored = ds.map(o => { c[o.tile]--; const s = shanten(c, need); c[o.tile]++; return { o, s }; });
+      const min = Math.min(...scored.map(x => x.s));
+      for (const x of scored.filter(x => x.s === min)) {
+        const t = x.o.tile; c[t]--; let uke = 0;
+        for (let k = 0; k < 34; k++) if (seen[k] < 4 && k !== t) { c[k]++; if (shanten(c, need) < min) uke += 4 - seen[k]; c[k]--; }
+        c[t]++;
+        // prefer throwing lonely honors and terminals first
+        const lonely = (isHonor(t) ? 3 : isTerm(t) ? 2 : (t % 9 === 1 || t % 9 === 7) ? 1 : 0) + (c[t] === 1 ? 1 : 0);
+        const val = uke * 10 + lonely;
+        if (!best || val > best.val) best = { o: x.o, val, uke };
+      }
+      const a = { type: 'discard', tile: best.o.tile };
+      if (best.o.canReady && best.uke > 0) a.ready = true;
+      return a;
+    }
+    // claim
+    const s0 = shanten(c, need); let pick = null, bestS = s0;
+    for (const o of opts) {
+      let s = 99;
+      if (o.type === 'pung') { c[o.tile] -= 2; s = shanten(c, need - 1); c[o.tile] += 2; }
+      else if (o.type === 'kong') { c[o.tile] -= 3; s = shanten(c, need - 1); c[o.tile] += 3; if (s > s0) s = 99; else s -= 0.5; }
+      else if (o.type === 'chow') { const ks = [o.low, o.low + 1, o.low + 2].filter(k => k !== o.tile); ks.forEach(k => c[k]--); s = shanten(c, need - 1); ks.forEach(k => c[k]++); }
+      if (s < bestS) { bestS = s; pick = o; }
+    }
+    return pick || { type: 'pass' };
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = MJ; else root.MJ = MJ;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const NAMES = ['你', '下家', '對家', '上家'];
+  const ME = 0;
+  let g, sel = -1, readyMode = false, tick = 0, bubbles = [], deal = null, rotated = false, drag = null, lastOpts = [];
+
+  // traditional faces: 筒 as rings, 索 as bamboo sticks, drawn as SVG on a 60×80 face
+  const B = '#2d4b9b', R = '#c8443f', G = '#2e8a5c';
+  const ring = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${r * .82}" fill="none" stroke="${c}" stroke-width="${r * .3}"/><circle cx="${x}" cy="${y}" r="${r * .42}" fill="none" stroke="${c}" stroke-width="${r * .2}"/><circle cx="${x}" cy="${y}" r="${r * .13}" fill="${c}"/>`;
+  const stick = (x, y, h, c, rot) => { const hh = h / 2 - .8; return `<g fill="${c}"${rot ? ` transform="rotate(${rot} ${x} ${y + h / 2})"` : ''}><rect x="${x - 3.2}" y="${y}" width="6.4" height="${hh}" rx="3"/><rect x="${x - 3.2}" y="${y + h / 2 + .8}" width="6.4" height="${hh}" rx="3"/></g>`; };
+  const DOTS = [
+    () => `<circle cx="30" cy="40" r="23" fill="none" stroke="${G}" stroke-width="4"/><circle cx="30" cy="40" r="15.5" fill="none" stroke="${G}" stroke-width="5" stroke-dasharray="3.2 2.2"/><circle cx="30" cy="40" r="8" fill="none" stroke="${R}" stroke-width="3"/><circle cx="30" cy="40" r="2.6" fill="${R}"/>`,
+    () => ring(30, 22, 13, B) + ring(30, 58, 13, G),
+    () => ring(15, 16, 10.5, B) + ring(30, 40, 10.5, R) + ring(45, 64, 10.5, G),
+    () => ring(17, 23, 11.5, B) + ring(43, 23, 11.5, G) + ring(17, 57, 11.5, G) + ring(43, 57, 11.5, B),
+    () => ring(15, 17, 10.5, B) + ring(45, 17, 10.5, G) + ring(30, 40, 10.5, R) + ring(15, 63, 10.5, G) + ring(45, 63, 10.5, B),
+    () => ring(18, 14, 10, G) + ring(42, 14, 10, G) + ring(18, 43, 10, R) + ring(42, 43, 10, R) + ring(18, 66, 10, R) + ring(42, 66, 10, R),
+    () => ring(12, 9, 7.6, G) + ring(30, 17, 7.6, G) + ring(48, 25, 7.6, G) + ring(19, 47, 9.6, R) + ring(41, 47, 9.6, R) + ring(19, 68, 9.6, R) + ring(41, 68, 9.6, R),
+    () => [10.5, 30, 49.5, 69].map(y => ring(19, y, 9.3, B) + ring(41, y, 9.3, B)).join(''),
+    () => [[15, B], [40, R], [65, G]].map(([y, c]) => [11, 30, 49].map(x => ring(x, y, 9, c)).join('')).join(''),
+  ];
+  const BAMS = [
+    // 一索: a small bird
+    () => `<path d="M14 62 C22 60 30 52 33 42 C35 34 33 27 38 23 C42 20 47 22 47 27 C47 31 44 33 42 36 C41 46 38 58 28 66 Z" fill="${G}"/><circle cx="41.5" cy="26" r="1.7" fill="#fff"/><path d="M46.5 25 L54 26.5 L46.5 29 Z" fill="${R}"/><path d="M33 42 C27 44 21 43 16 38 C22 37 28 37 33 39 Z" fill="${R}"/><path d="M14 62 L6 72 M17 63 L12 75 M21 64 L19 76" stroke="${G}" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M29 66 L29 73 M34 62 L35 73" stroke="${R}" stroke-width="1.8" stroke-linecap="round"/>`,
+    () => stick(30, 8, 29, G) + stick(30, 43, 29, G),
+    () => stick(30, 8, 29, G) + stick(16, 43, 29, G) + stick(44, 43, 29, G),
+    () => stick(18, 8, 29, G) + stick(42, 8, 29, G) + stick(18, 43, 29, G) + stick(42, 43, 29, G),
+    () => stick(14, 8, 29, G) + stick(46, 8, 29, G) + stick(30, 25.5, 29, R) + stick(14, 43, 29, G) + stick(46, 43, 29, G),
+    () => [14, 30, 46].map(x => stick(x, 8, 29, G) + stick(x, 43, 29, G)).join(''),
+    () => stick(30, 3, 22, R) + [14, 30, 46].map(x => stick(x, 29, 22, x === 30 ? B : G) + stick(x, 55, 22, x === 30 ? B : G)).join(''),
+    () => stick(11, 8, 28, G) + stick(49, 8, 28, G) + stick(23.5, 8, 28, G, -24) + stick(36.5, 8, 28, G, 24) + stick(11, 44, 28, G) + stick(49, 44, 28, G) + stick(23.5, 44, 28, G, 24) + stick(36.5, 44, 28, G, -24),
+    () => [[13, B], [30, R], [47, G]].map(([x, c]) => [5, 30, 55].map(y => stick(x, y, 21, c)).join('')).join(''),
+  ];
+  // 花牌: name and number in the corners, a line drawing in the middle (40×40 box)
+  const K = '#c23a34', N = '#23804f';
+  const around = (n, f) => Array.from({ length: n }, (_, i) => f(i * 360 / n)).join('');
+  const ART = [
+    /* 春 */ () => around(6, a => `<circle cx="20" cy="11" r="6" transform="rotate(${a} 20 20)"/>`) + `<circle cx="20" cy="20" r="4.5"/><circle cx="20" cy="20" r="1.2" fill="${K}"/>`,
+    /* 夏 */ () => `<circle cx="20" cy="20" r="6"/>` + around(12, a => `<path d="M20 11 L20 ${a % 60 ? 6 : 2}" transform="rotate(${a} 20 20)"/>`),
+    /* 秋 */ () => `<path d="M20 3 L23 11 L29 8 L27 16 L36 16 L30 22 L35 27 L26 27 L24 32 L20 28 L16 32 L14 27 L5 27 L10 22 L4 16 L13 16 L11 8 L17 11 Z"/><path d="M20 28 L20 38"/>`,
+    /* 冬 */ () => around(6, a => `<path d="M20 20 L20 3 M20 8 L16 4 M20 8 L24 4 M20 14 L16.5 10.5 M20 14 L23.5 10.5" transform="rotate(${a} 20 20)"/>`),
+    /* 梅 */ () => around(5, a => `<circle cx="20" cy="10.5" r="6.5" transform="rotate(${a} 20 20)"/>`) + `<circle cx="20" cy="20" r="2.2" fill="${K}"/>`,
+    /* 蘭 */ () => around(3, a => `<path d="M20 20 C12 14 13 5 20 2 C27 5 28 14 20 20 Z" transform="rotate(${a} 20 20)"/>`) + around(3, a => `<path d="M20 20 C17 15 18 11 20 9 C22 11 23 15 20 20 Z" transform="rotate(${a + 60} 20 20)"/>`) + `<circle cx="20" cy="20" r="2" fill="${K}"/>`,
+    /* 菊 */ () => around(14, a => `<path d="M20 20 C17.5 14 18 8 20 5 C22 8 22.500 14 20 20 Z" transform="rotate(${a} 20 20)"/>`) + `<circle cx="20" cy="20" r="3" fill="#fff"/><path d="M9 34 C13 30 17 31 20 36 C23 31 27 30 31 34" stroke="${N}"/>`,
+    /* 竹 */ () => [11, 20, 29].map((x, i) => `<path d="M${x} ${6 + i * 2} L${x} 36 M${x - 2.5} 16 L${x + 2.5} 16 M${x - 2.5} 26 L${x + 2.5} 26" stroke-width="2.6"/>`).join('') + `<path d="M11 12 L4 7 M20 14 L27 8 M29 18 L37 14 M20 22 L14 19" stroke-width="1.6"/>`,
+  ];
+  const flCache = {};
+  const flower = k => flCache[k] || (flCache[k] = `<svg viewBox="0 0 40 40" fill="none" stroke="${k === 37 || k === 41 ? N : K}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ART[k - 34]()}</svg>`);
+  const die = n => `<span class="die d${n}">${'<i></i>'.repeat(n)}</span>`;
+  const WAN = ['一', '二', '三', '四', '伍', '六', '七', '八', '九'];
+  const faceCache = {};
+  const face = k => faceCache[k] || (faceCache[k] = `<svg viewBox="0 0 60 80" aria-label="${MJ.tileName(k)}">${(k < 18 ? DOTS : BAMS)[k % 9]()}</svg>`);
+  function tile(k, cls, attr) {
+    cls = cls || ''; attr = attr || '';
+    if (k < 0) return `<span class="t back ${cls}"></span>`;
+    if (k < 9) return `<span class="t s0 ${cls}" ${attr}><b>${WAN[k]}</b><i>萬</i></span>`;
+    if (k < 27) return `<span class="t pic ${cls}" ${attr}>${face(k)}</span>`;
+    if (k < 34) return `<span class="t hz h${k} ${cls}" ${attr}>${k === 33 ? '<u></u>' : '<b>' + MJ.HONORS[k - 27] + '</b>'}</span>`;
+    return `<span class="t fl ${k >= 38 ? 'g2' : ''} ${cls}" ${attr}><b>${MJ.FLOWERS[k - 34]}</b><i>${(k - 34) % 4 + 1}</i>${flower(k)}</span>`;
+  }
+  const setHtml = m => `<span class="set">${m.tiles.map(k => tile(k)).join('')}</span>`;
+  const setsHtml = p => (p.flowers.length ? `<span class="set">${p.flowers.map(k => tile(k)).join('')}</span>` : '') + p.melds.map(setHtml).join('');
+  const windBadge = (v, s) => `<span class="wind ${v.dealer === s ? 'dealer' : ''}" style="--c:var(--seat${s})">${MJ.WINDS[v.players[s].wind]}</span>`;
+  const signed = n => (n > 0 ? '+' : '') + n;
+
+  // hold the phone sideways: if the screen is taller than wide, turn the whole table 90°
+  function fit() {
+    const W = window.innerWidth, H = window.innerHeight, app = $('app');
+    document.documentElement.style.setProperty('--L', Math.max(W, H) + 'px');
+    rotated = H > W;
+    if (H > W) { app.style.width = H + 'px'; app.style.height = W + 'px'; app.style.transform = 'rotate(90deg) translateY(-100%)'; }
+    else { app.style.width = ''; app.style.height = ''; app.style.transform = ''; }
+  }
+  window.addEventListener('resize', fit); fit();
+
+  const chip = (v, s, on) => { const p = v.players[s]; return `<span class="chip ${on ? 'on' : ''}">${windBadge(v, s)}<span class="nm">${NAMES[s]}</span><span class="pts">${signed(v.scores[s])}</span>${p.ready ? '<span class="pill">叮</span>' : ''}</span>`; };
+
+  function render() {
+    const v = g.viewFor(ME), me = v.players[ME];
+    $('round').textContent = MJ.WINDS[v.round] + '圈';
+    $('meta').innerHTML = `餘 ${v.wallLeft}${v.streak ? ` · 連莊 ${v.streak <= 6 ? die(v.streak) : v.streak}` : ''}`;
+    const shownN = (s, n) => deal ? Math.min(n, deal.n[s]) : n;
+    const sets = p => deal ? '' : setsHtml(p);
+    const acting = v.phase === 'turn' ? v.turn : -1;
+    // opponents
+    const top = v.players[2];
+    $('p2').innerHTML = `${chip(v, 2, acting === 2)}<span class="backs">${tile(-1).repeat(shownN(2, top.handCount))}</span><span class="sets ${top.melds.length * 3 + top.flowers.length > 13 ? 'many' : ''}">${sets(top)}</span>`;
+    for (const s of [3, 1]) { const p = v.players[s]; $('p' + s).innerHTML = `${chip(v, s, acting === s)}<div class="body"><span class="backs">${'<span></span>'.repeat(shownN(s, p.handCount))}</span><span class="sets ${p.melds.length + Math.ceil(p.flowers.length / 4) > 4 ? 'many' : ''}">${sets(p)}</span></div>`; }
+    // discards, each player's in front of them
+    const lastIdx = v.phase !== 'end' && v.lastDiscard ? v.river.length - 1 : -1;
+    const dz = [[], [], [], []];
+    v.river.forEach((r, i) => { if (!r.claimed) dz[r.seat].push(tile(r.tile, i === lastIdx ? 'last' : '')); });
+    for (let s = 0; s < 4; s++) { $('d' + s).innerHTML = dz[s].join(''); $('d' + s).classList.toggle('many', dz[s].length > (s % 2 ? 20 : 16)); }
+
+    // me
+    let hint = '';
+    if (me.ready) { const c = MJ.counts(me.hand); if (v.drawn != null && acting === ME) c[v.drawn]--; hint = '聽 ' + MJ.waitsOf(c, me.melds.length).map(MJ.tileName).join('、'); }
+    $('meInfo').innerHTML = `${chip(v, ME, acting === ME)}${me.flowers.length && !deal ? `<span class="set">${me.flowers.map(k => tile(k)).join('')}</span>` : ''}<span class="hint">${hint}</span>`;
+    $('mySets').innerHTML = me.melds.map(setHtml).join('');
+    const opts = lastOpts = v.options, myTurn = v.phase === 'turn' && v.turn === ME;
+    const discards = opts.filter(o => o.type === 'discard');
+    const canDiscard = myTurn && !me.ready && !deal;
+    const rdyTiles = new Set(discards.filter(o => o.canReady).map(o => o.tile));
+    const hand = deal ? deal.mine.slice(0, deal.n[ME]) : me.hand, drawnIdx = deal ? -1 : myTurn && v.drawn != null ? hand.lastIndexOf(v.drawn) : -1;
+    $('hand').className = canDiscard ? '' : 'locked';
+    $('hand').innerHTML = hand.map((k, i) => tile(k, (i === sel && canDiscard ? 'sel ' : '') + (i === drawnIdx && i === hand.length - 1 ? 'drawn ' : '') + (readyMode && canDiscard && rdyTiles.has(k) ? 'rdy' : '') + (deal && i >= deal.n[ME] - 4 ? ' in' : ''), `data-i="${i}"`)).join('');
+
+    // actions
+    const acts = [];
+    const add = (label, cls, fn) => acts.push({ label, cls, fn });
+    if (myTurn) {
+      if (opts.some(o => o.type === 'win')) add(v.drawn == null ? '糊' : '自摸', 'win', () => act({ type: 'win' }));
+      for (const o of opts) if (o.type === 'ankan' || o.type === 'kakan') add('槓 ' + tile(o.tile), '', () => act(o));
+      if (canDiscard && rdyTiles.size) add(readyMode ? '取消' : '叮', readyMode ? 'plain' : '', () => { readyMode = !readyMode; sel = -1; render(); });
+      if (me.ready && opts.some(o => o.type === 'win')) add('過', 'pass', () => act({ type: 'discard', tile: v.drawn }));
+    } else {
+      for (const o of opts) {
+        if (o.type === 'win') add('糊', 'win', () => act(o));
+        else if (o.type === 'kong') add('槓', '', () => act(o));
+        else if (o.type === 'pung') add('碰', '', () => act(o));
+        else if (o.type === 'chow') add('上 ' + [o.low, o.low + 1, o.low + 2].map(k => tile(k)).join(''), '', () => act(o));
+        else if (o.type === 'pass') add('過', 'pass', () => act(o));
+      }
+    }
+    const el = $('acts');
+    let h = acts.map((a, i) => `<button type="button" class="${a.cls}" data-a="${i}">${a.label}</button>`).join('');
+    if (v.phase !== 'end' && myTurn && !(acts.length && !canDiscard)) h = `<span class="wait">${me.ready ? '已叮，自動摸打' : readyMode ? '滑去金邊牌睇叫乜，拉出或再撳即叮' : sel >= 0 ? '向上拉出或再撳一下打出' : '到你，滑動揀牌'}</span>` + h;
+    el.innerHTML = v.phase === 'end' || deal ? '' : h;
+    el._acts = acts;
+    showTip();
+
+    // call bubbles
+    for (const b of bubbles) {
+      const host = $('p' + b.seat); if (!host) continue;
+      const d = document.createElement('div'); d.className = 'bubble'; d.textContent = b.call; host.appendChild(d);
+      setTimeout(() => d.remove(), 900);
+    }
+    bubbles = [];
+  }
+
+  // before each hand: the dealer rolls three dice, then tiles are dealt four at a time
+  function intro() {
+    tick++; g.events.length = 0;
+    const mine = g.players[ME].hand.slice();
+    for (let i = mine.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [mine[i], mine[j]] = [mine[j], mine[i]]; }
+    deal = { n: [0, 0, 0, 0], mine }; render();
+    const el = $('dice'), sp = g.side.find(x => x.label === '一二三' || x.label === '圍骰'); let t = 0;
+    const show = (d, note) => { el.innerHTML = `<div class="who">${NAMES[g.dealer]}做莊，擲骰</div><div class="row">${d.map(die).join('')}</div>${note ? `<div class="note">${note}</div>` : ''}`; };
+    el.hidden = false; el.classList.add('rolling');
+    const iv = setInterval(() => {
+      if (++t < 11) return show([0, 0, 0].map(() => 1 + Math.floor(Math.random() * 6)));
+      clearInterval(iv); el.classList.remove('rolling');
+      show(g.dice, sp ? `${sp.label}！莊家每家${sp.collects ? '收' : '畀'} ${sp.amt}` : '');
+      setTimeout(() => { el.hidden = true; step(0); }, sp ? 2000 : 750);
+    }, 80);
+    function step(i) {
+      if (i >= 16) { deal = null; return pump(); }
+      const s = (g.dealer + i) % 4; deal.n[s] = Math.min(deal.n[s] + 4, g.players[s].hand.length); render();
+      setTimeout(() => step(i + 1), 90);
+    }
+  }
+
+  function act(a) {
+    sel = -1; readyMode = false;
+    g.act(ME, a); pump();
+  }
+
+  function pump() {
+    const my = ++tick;
+    for (const e of g.events) if (e.type === 'call') bubbles.push(e);
+    g.events.length = 0;
+    render();
+    if (g.phase === 'end') return setTimeout(() => { if (my === tick) showResult(); }, 500);
+    const w = g.waiting(), ais = w.filter(s => s !== ME);
+    if (ais.length) {
+      setTimeout(() => {
+        if (my !== tick) return;
+        const pd = g.pending;
+        for (const s of ais) { if (g.phase === 'end' || g.pending !== pd || !g.waiting().includes(s)) break; g.act(s, MJ.ai(g, s)); }
+        pump();
+      }, g.phase === 'turn' ? 650 : 250);
+      return;
+    }
+    // only the human is waiting
+    const p = g.players[ME];
+    if (g.phase === 'turn' && p.ready && !g.options(ME).some(o => o.type === 'win'))
+      setTimeout(() => { if (my === tick) { g.act(ME, { type: 'discard', tile: g.drawn }); pump(); } }, 700);
+  }
+
+  // ----- hand: slide across tiles to pick, pull up (or tap again) to throw -----
+  const handEl = $('hand');
+  const canPlay = () => !deal && g.phase === 'turn' && g.turn === ME && !g.players[ME].ready;
+  const tileAt = (x, y) => { const el = document.elementFromPoint(x, y), t = el && el.closest('#hand .t'); return t ? +t.dataset.i : -1; };
+  function setSel(i, pull) {
+    sel = i;
+    handEl.querySelectorAll('.t').forEach((t, j) => { t.classList.toggle('sel', j === sel); t.classList.toggle('pull', j === sel && !!pull); });
+    showTip();
+  }
+  // which tiles you would be calling for (叫) if the picked tile is thrown
+  function showTip() {
+    const tip = $('tip');
+    if (sel < 0 || !canPlay()) { tip.hidden = true; return; }
+    const p = g.players[ME], k = p.hand[sel], o = lastOpts.find(o => o.type === 'discard' && o.tile === k);
+    if (!o || !o.canReady) { tip.hidden = true; return; }
+    const c = MJ.counts(p.hand); c[k]--;
+    const ws = MJ.waitsOf(c, p.melds.length);
+    tip.innerHTML = `<span class="lab">打${MJ.tileName(k)}，叫</span>` + ws.map(w => `<span class="w">${tile(w)}<em>剩 ${Math.max(0, 4 - c[w] - g.visibleCount(w))}</em></span>`).join('');
+    tip.hidden = false;
+  }
+  function throwSel() {
+    const k = g.players[ME].hand[sel], o = lastOpts.find(o => o.type === 'discard' && o.tile === k);
+    if (!o) return;
+    if (readyMode) { if (o.canReady) act({ type: 'discard', tile: k, ready: true }); else setSel(sel, false); return; }
+    act({ type: 'discard', tile: k });
+  }
+  handEl.addEventListener('pointerdown', e => {
+    if (!canPlay()) return;
+    const i = tileAt(e.clientX, e.clientY); if (i < 0) return;
+    drag = { x: e.clientX, y: e.clientY, was: sel, moved: false, pull: false };
+    try { handEl.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    setSel(i, false); e.preventDefault();
+  });
+  handEl.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 8) drag.moved = true;
+    const up = rotated ? dx : -dy; // the table is turned 90° when the screen is taller than wide
+    drag.pull = up > 30;
+    if (!drag.pull) { const i = tileAt(e.clientX, e.clientY); if (i >= 0 && i !== sel) return setSel(i, false); }
+    setSel(sel, drag.pull);
+  });
+  const endDrag = e => {
+    const d = drag; drag = null; if (!d) return;
+    if (e.type === 'pointerup' && (d.pull || (!d.moved && d.was === sel))) return throwSel();
+    setSel(sel, false); render();
+  };
+  handEl.addEventListener('pointerup', endDrag);
+  handEl.addEventListener('pointercancel', endDrag);
+  $('acts').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const a = $('acts')._acts[+b.dataset.a]; if (a) a.fn();
+  });
+  $('helpBtn').onclick = () => { $('help').hidden = false; };
+  $('helpClose').onclick = () => { $('help').hidden = true; };
+
+  function scoreTable(delta) {
+    return '<table class="sc">' + [0, 1, 2, 3].map(s => `<tr><td>${NAMES[s]}</td><td class="${delta ? (delta[s] > 0 ? 'up' : delta[s] < 0 ? 'down' : '') : ''}">${delta ? (delta[s] ? signed(delta[s]) : '—') : ''}</td><td>${signed(g.scores[s])}</td></tr>`).join('') + '</table>';
+  }
+  function showResult() {
+    const r = g.result; let h = '<div class="col">';
+    if (r.type === 'draw') h += '<h2>流局<small>冇人食糊，莊家連莊</small></h2>';
+    else for (const w of r.winners) {
+      h += `<h2>${NAMES[w.seat]}${r.selfDraw ? '自摸' : '食糊'}<small>${r.selfDraw ? '三家畀' : NAMES[r.from] + '出銃'}</small></h2>`;
+      const hand = w.hand.slice(); let wt = '';
+      if (w.winTile != null) { hand.splice(hand.indexOf(w.winTile), 1); wt = `<span class="set">${tile(w.winTile, 'wt')}</span>`; }
+      h += `<div class="winhand">${w.melds.map(setHtml).join('')}<span class="set">${hand.map(k => tile(k)).join('')}</span>${wt}${w.flowers.length ? `<span class="set">${w.flowers.map(k => tile(k)).join('')}</span>` : ''}</div>`;
+      h += `<div class="fans">${w.items.map(i => `<div><span>${i[0]}</span><span>${i[1]}</span></div>`).join('')}</div>`;
+      h += `<div class="total"><span>${w.pays.map(p => `${NAMES[p.seat]}畀 ${p.amount}${p.fan !== w.fan ? `（莊${r.streak ? '連' + r.streak : ''} +${w.dealerBonus} 番）` : ''}`).join('　')}</span><strong>合共 <b>${w.fan}</b> 番</strong></div>`;
+    }
+    const notes = (r.side || []).map(x => `${x.label}：${NAMES[x.seat]}每家${x.collects ? '收' : '畀'} ${x.amt}`)
+      .concat((r.pull || []).map(n => n.type === 'pull' ? `拉：${NAMES[n.L]}再輸畀${NAMES[n.W]}，${n.old} × 1.5 + ${n.a} = ${n.tot}` : `踢半：${NAMES[n.L]}反食${NAMES[n.W]}，上鋪 ${n.old} 減半做 ${n.half}`));
+    if (notes.length) h += `<div class="notes">${notes.map(n => `<span>${n}</span>`).join('')}</div>`;
+    const lastHand = !r.dealerStays && (g.dealer + 1) % 4 === g.firstDealer && g.round === 3;
+    h += '</div><div class="col"><h3>今鋪 / 累計</h3>' + scoreTable(r.delta) + `<button class="cta" id="next" type="button">${lastHand ? '睇總成績' : '下一鋪'}</button></div>`;
+    $('resultCard').innerHTML = h; $('result').hidden = false;
+    $('next').onclick = () => {
+      g.nextHand();
+      if (g.over) return showFinal();
+      $('result').hidden = true; intro();
+    };
+  }
+  function showFinal() {
+    const order = [0, 1, 2, 3].sort((a, b) => g.scores[b] - g.scores[a]);
+    $('resultCard').innerHTML = `<div class="col"><h2>完場<small>四圈打完</small></h2><table class="sc">${order.map((s, i) => `<tr><td>第 ${i + 1} 名　${NAMES[s]}</td><td class="${g.scores[s] > 0 ? 'up' : g.scores[s] < 0 ? 'down' : ''}">${signed(g.scores[s])}</td></tr>`).join('')}</table></div><div class="col"><button class="cta" id="again" type="button">再開一場</button></div>`;
+    $('again').onclick = () => { $('result').hidden = true; start(); };
+  }
+
+  function start(seed) { g = new MJ.Game(seed != null ? { seed } : {}); sel = -1; readyMode = false; window.__game = g; intro(); }
+  start();
+})();
+
+</script>
+</body>
+</html>
